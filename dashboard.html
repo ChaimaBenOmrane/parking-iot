@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Parking IoT – Supervision</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;--bg:#f4f7fb;--card:#fff;--txt:#0f172a;--mut:#64748b;--line:#e8edf4;
+  --blue:#4f46e5;--blue2:#06b6d4;--green:#10b981;--red:#ef4444;--amber:#f59e0b;--shadow:0 4px 24px rgba(15,23,42,.06)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+.hero{background:linear-gradient(120deg,var(--blue),var(--blue2));color:#fff;padding:28px 20px 90px}
+.wrap{max-width:1040px;margin:0 auto}
+.hero .wrap{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.hero h1{margin:0;font-size:1.5rem;font-weight:700;letter-spacing:-.02em}
+.hero p{margin:4px 0 0;opacity:.85;font-size:.9rem}
+.status{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.18);backdrop-filter:blur(6px);padding:8px 16px;border-radius:99px;font-size:.85rem;font-weight:500}
+.dot{width:9px;height:9px;border-radius:50%;background:#fca5a5}.status.on .dot{background:#6ee7b7;box-shadow:0 0 0 4px rgba(110,231,183,.3)}
+main{max-width:1040px;margin:-64px auto 40px;padding:0 20px}
+.card{background:var(--card);border-radius:20px;padding:20px;box-shadow:var(--shadow);border:1px solid var(--line)}
+.title{font-size:.78rem;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+.grid{display:grid;gap:16px;margin-bottom:16px}
+.g4{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(310px,1fr))}
+.gauge{display:flex;align-items:center;gap:14px}
+.ring{position:relative;width:84px;height:84px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:9;stroke-linecap:round}
+.ring .bg{stroke:var(--line)}.ring .fg{transition:stroke-dashoffset .6s,stroke .3s}
+.ring span{position:absolute;inset:0;display:grid;place-items:center;font-size:1.3rem}
+.big{font-size:1.9rem;font-weight:700;letter-spacing:-.02em;line-height:1}.big small{font-size:.85rem;font-weight:500;color:var(--mut);margin-left:3px}
+.sub{color:var(--mut);font-size:.8rem;margin-top:5px}
+#alarm{display:none;align-items:center;gap:12px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;padding:14px 18px;border-radius:16px;margin-bottom:16px;font-weight:600;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{background:#fee2e2}}
+.scene{background:linear-gradient(#e0f2fe,#f0f9ff);border-radius:14px;padding:6px 0 0}
+#arm{transition:transform .6s cubic-bezier(.4,0,.2,1);transform-origin:44px 106px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chip{padding:5px 12px;border-radius:99px;font-size:.78rem;font-weight:600;background:#f1f5f9;color:#475569}
+.chip.ok{background:#d1fae5;color:#047857}.chip.warn{background:#fef3c7;color:#b45309}.chip.ko{background:#fee2e2;color:#b91c1c}
+.seg{display:flex;background:#f1f5f9;border-radius:12px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;padding:10px;border-radius:9px;font:inherit;font-weight:600;font-size:.88rem;color:var(--mut);cursor:pointer;transition:.2s}
+.seg button.on{background:#fff;color:var(--blue);box-shadow:0 2px 8px rgba(15,23,42,.1)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.btn{border:0;padding:14px;border-radius:14px;font:inherit;font-weight:600;font-size:.95rem;cursor:pointer;color:#fff;transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-2px)}.btn:active{transform:none}
+.open{background:linear-gradient(135deg,#10b981,#059669);box-shadow:0 6px 16px rgba(16,185,129,.3)}
+.close{background:linear-gradient(135deg,#f97316,#ef4444);box-shadow:0 6px 16px rgba(239,68,68,.28)}
+.note{color:var(--mut);font-size:.78rem;margin-top:14px;line-height:1.5}
+.track{position:relative;height:12px;border-radius:99px;background:linear-gradient(90deg,#fecaca 0 10%,#fde68a 10% 25%,#bbf7d0 25%);margin:30px 0 8px}
+.track b{position:absolute;top:-24px;font-size:1.3rem;transform:translateX(-50%);transition:left .4s}
+.scale{display:flex;justify-content:space-between;font-size:.72rem;color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="hero"><div class="wrap">
+  <div><h1>Barrière de parking connectée</h1><p>Supervision temps réel · ESP32 + Firebase</p></div>
+  <div class="status" id="etat"><i class="dot"></i><span>Hors ligne</span></div>
+</div></div>
+
+<main>
+  <div id="alarm"><span style="font-size:1.5rem">🚨</span><span>Alarme : un véhicule est trop proche de la barrière</span></div>
+
+  <div class="grid g4">
+    <div class="card"><div class="title">Température</div><div class="gauge">
+      <div class="ring"><svg viewBox="0 0 84 84"><circle class="bg" cx="42" cy="42" r="34"/><circle class="fg" id="rT" cx="42" cy="42" r="34" stroke="#f97316"/></svg><span>🌡️</span></div>
+      <div><div class="big"><span id="temperature">–</span><small>°C</small></div><div class="sub">DHT22</div></div></div></div>
+    <div class="card"><div class="title">Humidité</div><div class="gauge">
+      <div class="ring"><svg viewBox="0 0 84 84"><circle class="bg" cx="42" cy="42" r="34"/><circle class="fg" id="rH" cx="42" cy="42" r="34" stroke="#06b6d4"/></svg><span>💧</span></div>
+      <div><div class="big"><span id="humidity">–</span><small>%</small></div><div class="sub">DHT22</div></div></div></div>
+    <div class="card"><div class="title">Luminosité</div><div class="gauge">
+      <div class="ring"><svg viewBox="0 0 84 84"><circle class="bg" cx="42" cy="42" r="34"/><circle class="fg" id="rL" cx="42" cy="42" r="34" stroke="#eab308"/></svg><span>☀️</span></div>
+      <div><div class="big"><span id="lightPct">–</span><small>%</small></div><div class="sub" id="lightRaw">brut : –</div></div></div></div>
+    <div class="card"><div class="title">Potentiomètre</div><div class="gauge">
+      <div class="ring"><svg viewBox="0 0 84 84"><circle class="bg" cx="42" cy="42" r="34"/><circle class="fg" id="rP" cx="42" cy="42" r="34" stroke="#8b5cf6"/></svg><span>🎚️</span></div>
+      <div><div class="big"><span id="potentiometer">–</span></div><div class="sub">brut (0–4095)</div></div></div></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <div class="title">Barrière</div>
+      <div class="scene"><svg viewBox="0 0 300 126" width="100%" role="img" aria-label="Barrière">
+        <rect x="0" y="112" width="300" height="14" fill="#94a3b8"/><rect x="0" y="118" width="300" height="2" fill="#fff" opacity=".6"/>
+        <rect x="26" y="66" width="36" height="46" rx="6" fill="#475569"/><rect x="34" y="74" width="20" height="8" rx="2" fill="#94a3b8"/>
+        <g id="arm"><rect x="44" y="100" width="240" height="12" rx="4" fill="#ef4444"/>
+          <rect x="96" y="100" width="24" height="12" fill="#fff"/><rect x="168" y="100" width="24" height="12" fill="#fff"/><rect x="240" y="100" width="24" height="12" fill="#fff"/></g>
+        <circle cx="44" cy="106" r="7" fill="#1e293b"/>
+      </svg></div>
+      <div class="chips"><span class="chip" id="tBar">–</span><span class="chip" id="tObs">–</span><span class="chip" id="tAng">–</span></div>
+    </div>
+
+    <div class="card">
+      <div class="title">Distance du véhicule</div>
+      <div class="big"><span id="distance">–</span><small>cm</small></div>
+      <div class="track"><b id="car" style="left:100%">🚗</b></div>
+      <div class="scale"><span>Barrière</span><span>20 cm · alarme</span><span>50 cm · détecté</span><span>200+ cm</span></div>
+      <div class="chips"><span class="chip" id="tMode">–</span></div>
+    </div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <div class="title">Commande à distance</div>
+      <div class="seg"><button id="bLocal" onclick="send({mode:'local'})">Local · potentiomètre</button><button id="bRemote" onclick="send({mode:'remote'})">Remote · dashboard</button></div>
+      <div class="actions"><button class="btn open" onclick="send({mode:'remote',open:true})">🔓 Ouvrir</button><button class="btn close" onclick="send({mode:'remote',open:false})">🔒 Fermer</button></div>
+      <div class="note">Ouvrir ou fermer active automatiquement le mode remote. Si un véhicule est détecté, l’ESP32 refuse de fermer la barrière (sécurité anti-écrasement).</div>
+    </div>
+    <div class="card">
+      <div class="title">Historique</div>
+      <svg id="gT" viewBox="0 0 300 64" width="100%" height="64"></svg>
+      <div class="sub" style="margin:2px 0 12px">Température (°C)</div>
+      <svg id="gD" viewBox="0 0 300 64" width="100%" height="64"></svg>
+      <div class="sub" style="margin-top:2px">Distance (cm)</div>
+    </div>
+  </div>
+
+  <div class="sub" id="maj" style="text-align:center">Dernière mise à jour : –</div>
+</main>
+
+<script>
+const base = "https://parking-iot-acd47-default-rtdb.europe-west1.firebasedatabase.app";
+const $ = id => document.getElementById(id);
+const hist = { t: [], d: [] };
+const C = 2 * Math.PI * 34;
+
+async function send(obj){
+  try {
+    const r = await fetch(base + "/parking/command.json", { method:"PATCH", body: JSON.stringify(obj) });
+    if(!r.ok) throw new Error(r.status);
+    poll();
+  } catch(e){ alert("Envoi impossible (" + e.message + "). Vérifiez les règles de la base Firebase."); }
+}
+function ring(id, pct){
+  const e = $(id); const p = Math.max(0, Math.min(1, pct || 0));
+  e.style.strokeDasharray = C; e.style.strokeDashoffset = C * (1 - p);
+}
+function graph(id, arr, color, gid){
+  const e = $(id);
+  if(arr.length < 2){ e.innerHTML = ""; return; }
+  const min = Math.min(...arr), max = Math.max(...arr), span = (max - min) || 1;
+  const pts = arr.map((v,i) => [(i/(arr.length-1)*290+5), (56 - (v-min)/span*46)]);
+  const line = pts.map(p => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+  e.innerHTML = '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + color + '" stop-opacity=".25"/><stop offset="1" stop-color="' + color + '" stop-opacity="0"/></linearGradient></defs>' +
+    '<polygon fill="url(#' + gid + ')" points="5,60 ' + line + ' 295,60"/>' +
+    '<polyline fill="none" stroke="' + color + '" stroke-width="2.5" stroke-linejoin="round" points="' + line + '"/>';
+}
+function chip(id, text, cls){ const e = $(id); e.textContent = text; e.className = "chip " + (cls || ""); }
+const num = (v, n = 0) => (v === undefined || v === null) ? "–" : Number(v).toFixed(n);
+
+async function poll(){
+  try {
+    const r = await fetch(base + "/parking.json");
+    if(!r.ok) throw new Error(r.status);
+    const j = await r.json();
+    const t = (j && j.telemetry) || {}, c = (j && j.command) || {};
+
+    $("temperature").textContent = num(t.temperature, 1); ring("rT", t.temperature / 50);
+    $("humidity").textContent = num(t.humidity, 0);       ring("rH", t.humidity / 100);
+    const lp = t.light === undefined ? undefined : Math.round(t.light / 4095 * 100);
+    $("lightPct").textContent = lp === undefined ? "–" : lp; ring("rL", (lp || 0) / 100);
+    $("lightRaw").textContent = "brut : " + (t.light === undefined ? "–" : t.light);
+    $("potentiometer").textContent = num(t.potentiometer, 0); ring("rP", t.potentiometer / 4095);
+
+    const ang = Number(t.servoAngle || 0), d = Number(t.distance);
+    $("arm").style.transform = "rotate(" + (-ang) + "deg)";
+    chip("tBar", t.barrierOpen ? "Barrière ouverte" : "Barrière fermée", t.barrierOpen ? "ok" : "");
+    chip("tAng", "Angle : " + ang + "°");
+    chip("tObs", t.obstacle ? "Véhicule détecté" : "Voie libre", t.obstacle ? "warn" : "ok");
+    chip("tMode", "Mode actif : " + (t.mode || "–"));
+    $("distance").textContent = num(t.distance, 0);
+    if(!isNaN(d)) $("car").style.left = Math.min(100, Math.max(2, d / 200 * 100)) + "%";
+    $("alarm").style.display = t.alarm ? "flex" : "none";
+
+    $("bLocal").className = c.mode === "remote" ? "" : "on";
+    $("bRemote").className = c.mode === "remote" ? "on" : "";
+
+    if(t.temperature !== undefined){ hist.t.push(Number(t.temperature)); if(hist.t.length > 40) hist.t.shift(); }
+    if(!isNaN(d)){ hist.d.push(d); if(hist.d.length > 40) hist.d.shift(); }
+    graph("gT", hist.t, "#f97316", "g1"); graph("gD", hist.d, "#4f46e5", "g2");
+
+    $("etat").className = "status on"; $("etat").lastChild.textContent = "En ligne";
+    $("maj").textContent = "Dernière mise à jour : " + new Date().toLocaleTimeString("fr-FR");
+  } catch(e){
+    $("etat").className = "status"; $("etat").lastChild.textContent = "Hors ligne";
+    $("maj").textContent = "Connexion impossible (" + e.message + ") – vérifiez les règles de la base Firebase.";
+  }
+}
+setInterval(poll, 1000); poll();
+</script>
+</body>
+</html>
