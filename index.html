@@ -48,6 +48,8 @@ main{max-width:1040px;margin:-64px auto 40px;padding:0 20px}
 .btn:hover{transform:translateY(-2px)}.btn:active{transform:none}
 .open{background:linear-gradient(135deg,#10b981,#059669);box-shadow:0 6px 16px rgba(16,185,129,.3)}
 .close{background:linear-gradient(135deg,#f97316,#ef4444);box-shadow:0 6px 16px rgba(239,68,68,.28)}
+.sim{background:linear-gradient(135deg,#4f46e5,#06b6d4);box-shadow:0 6px 16px rgba(79,70,229,.28)}
+.stop{background:#64748b}
 .note{color:var(--mut);font-size:.78rem;margin-top:14px;line-height:1.5}
 .track{position:relative;height:12px;border-radius:99px;background:linear-gradient(90deg,#fecaca 0 10%,#fde68a 10% 25%,#bbf7d0 25%);margin:30px 0 8px}
 .track b{position:absolute;top:-24px;font-size:1.3rem;transform:translateX(-50%);transition:left .4s}
@@ -105,7 +107,8 @@ main{max-width:1040px;margin:-64px auto 40px;padding:0 20px}
       <div class="title">Commande à distance</div>
       <div class="seg"><button id="bLocal" onclick="send({mode:'local'})">Local · potentiomètre</button><button id="bRemote" onclick="send({mode:'remote'})">Remote · dashboard</button></div>
       <div class="actions"><button class="btn open" onclick="send({mode:'remote',open:true})">🔓 Ouvrir</button><button class="btn close" onclick="send({mode:'remote',open:false})">🔒 Fermer</button></div>
-      <div class="note">Ouvrir ou fermer active automatiquement le mode remote. Si un véhicule est détecté, l’ESP32 refuse de fermer la barrière (sécurité anti-écrasement).</div>
+      <div class="actions"><button class="btn sim" onclick="send({mode:'local',simulation:true})">🚗 Simuler un véhicule</button><button class="btn stop" onclick="send({simulation:false})">⏹ Arrêter</button></div>
+      <div class="note">Ouvrir ou fermer active automatiquement le mode remote. Si un véhicule est détecté, l’ESP32 refuse de fermer la barrière (sécurité anti-écrasement). « Simuler un véhicule » fait descendre la distance de 200 à 30 cm : la barrière s’ouvre sous 50 cm (mode local).</div>
     </div>
     <div class="card">
       <div class="title">Historique</div>
